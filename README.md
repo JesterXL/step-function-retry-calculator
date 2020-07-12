@@ -4,6 +4,16 @@ Helps visualize how long your retries will take in a Step Function. Uses [Elm](h
 
 <img src="preview.png"></img>
 
+# Building
+
+To see it yourself:
+
+1. run `npm install`
+2. run `npm start`
+3. open a browser at `http://localhost:8000`
+
+To make an optmized build, run `npm run build`.
+
 # Why
 
 AWS Step Functions allow you to orchestrate microservices. One of their killer features is [retry](https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html); they handle all the state of retry, and they can run for up to a year. While that's great, sometimes during development, or perhaps for timeout reasons, you don't want your retries to take that long.
