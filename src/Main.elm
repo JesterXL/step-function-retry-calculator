@@ -3,14 +3,16 @@ module Main exposing (main)
 import Browser
 import Html exposing (Html, button, div, input, label, li, ol, p, text)
 import Html.Attributes exposing (attribute, placeholder, type_, value)
-import Html.Events exposing (onClick, onInput)
-
+import Html.Events exposing (onClick, onInput, onBlur)
+import Round
+import Debug
 
 type alias Model =
     { intervalSeconds : Int
     , maxAttempts : Int
-    , backoffRate : Int
-    , times : List Int
+    , backoffRateText : String
+    , backoffRate : Float
+    , times : List Float
     }
 
 
@@ -18,7 +20,8 @@ initialModel : Model
 initialModel =
     { intervalSeconds = 1
     , maxAttempts = 3
-    , backoffRate = 2
+    , backoffRateText = "2.0"
+    , backoffRate = 2.0
     , times = []
     }
         |> calculateTimes
@@ -27,48 +30,42 @@ initialModel =
 type Msg
     = ChangeIntervalSeconds String
     | ChangeMaxAttempts String
-    | ChangeBackoffRate String
+    | ChangeBackoffRateText String
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
         ChangeIntervalSeconds newIntervalSeconds ->
-            if newIntervalSeconds == "" then
-                { model | intervalSeconds = 0 } |> calculateTimes
-
-            else
-                case String.toInt newIntervalSeconds of
-                    Nothing ->
-                        model
-
-                    Just val ->
-                        { model | intervalSeconds = val } |> calculateTimes
+            { model | intervalSeconds = parseIntElseBlankIsZero model.intervalSeconds newIntervalSeconds } |> calculateTimes
 
         ChangeMaxAttempts newMaxAttempts ->
-            if newMaxAttempts == "" then
-                { model | maxAttempts = 0 } |> calculateTimes
+            { model | maxAttempts = parseIntElseBlankIsZero model.maxAttempts newMaxAttempts } |> calculateTimes
+
+        ChangeBackoffRateText text ->
+            if text == "" then
+                { model | backoffRateText = text, backoffRate = 0.0 } |> calculateTimes
 
             else
-                case String.toInt newMaxAttempts of
+                case String.toFloat text of
                     Nothing ->
-                        model
+                        { model | backoffRateText = text }
 
                     Just val ->
-                        { model | maxAttempts = val } |> calculateTimes
+                        { model | backoffRateText = text, backoffRate = val } |> calculateTimes
 
-        ChangeBackoffRate newBackoffRate ->
-            if newBackoffRate == "" then
-                { model | backoffRate = 0 } |> calculateTimes
 
-            else
-                case String.toInt newBackoffRate of
-                    Nothing ->
-                        model
+parseIntElseBlankIsZero : Int -> String -> Int
+parseIntElseBlankIsZero current string =
+    if string == "" then
+        0
+    else
+        case String.toInt string of
+            Nothing ->
+                current
 
-                    Just val ->
-                        { model | backoffRate = val } |> calculateTimes
-
+            Just value ->
+                value
 
 calculateTimes : Model -> Model
 calculateTimes model =
@@ -79,7 +76,7 @@ calculateTimes model =
         let
             values =
                 List.repeat model.maxAttempts 0
-                    |> List.indexedMap (\index _ -> model.intervalSeconds * model.backoffRate * index + model.intervalSeconds)
+                    |> List.indexedMap (\index _ -> (toFloat model.intervalSeconds) * model.backoffRate * (toFloat index) + (toFloat model.intervalSeconds))
         in
         { model | times = values }
 
@@ -92,7 +89,7 @@ view model =
         , label [ attribute "class" "label" ] [ text "Max Attempts:" ]
         , input [ attribute "class" "input", type_ "text", value (viewBlankForZeroElseNumber model.maxAttempts), onInput ChangeMaxAttempts ] []
         , label [ attribute "class" "label" ] [ text "Backoff Rate:" ]
-        , input [ attribute "class" "input", type_ "text", value (viewBlankForZeroElseNumber model.backoffRate), onInput ChangeBackoffRate ] []
+        , input [ attribute "class" "input", type_ "text", value model.backoffRateText, onInput ChangeBackoffRateText ] []
         , div [] []
         , viewTimes model
         ]
@@ -106,6 +103,14 @@ viewBlankForZeroElseNumber value =
     else
         String.fromInt value
 
+viewFloatBlankForZeroElseNumber : Float -> String
+viewFloatBlankForZeroElseNumber value =
+    if value == 0 then
+        ""
+
+    else
+        String.fromFloat value
+
 
 viewTimes model =
     div []
@@ -115,18 +120,30 @@ viewTimes model =
             [ div [] ([] ++ List.map viewTime model.times)
             ]
         , p [ attribute "class" "mt-2" ] []
-        , label [ attribute "class" "label" ] [ text ("Total: " ++ String.fromInt (List.foldl (\time acc -> time + acc) 0 model.times) ++ " seconds") ]
+        , label [ attribute "class" "label" ] [ text (formatTotal model.times) ]
         ]
 
+formatTotal : List Float -> String
+formatTotal times =
+    let
+        total =
+            List.foldl (\time acc -> time + acc) 0.0 times
+        totalString = Round.round 1 total
+    in
+    "Total: "
+    ++ totalString 
+    ++ " "
+    ++ (secondOrSeconds (round total))
 
-viewTime : Int -> Html msg
+viewTime : Float -> Html msg
 viewTime time =
-    if time > 1 then
-        div [] [ text ("- " ++ String.fromInt time ++ " seconds") ]
+    div [] [ text ("- " ++ (Round.round 1 time) ++ " " ++ (secondOrSeconds (round time))) ]
 
-    else
-        div [] [ text ("- " ++ String.fromInt time ++ " second") ]
 
+
+secondOrSeconds : Int -> String
+secondOrSeconds value =
+    if value > 1 then "seconds" else "second"
 
 main : Program () Model Msg
 main =
