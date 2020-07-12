@@ -7,8 +7,7 @@ import Html.Events exposing (onClick, onInput)
 
 
 type alias Model =
-    { count : Int
-    , intervalSeconds : Int
+    { intervalSeconds : Int
     , maxAttempts : Int
     , backoffRate : Int
     , times : List Int
@@ -17,8 +16,7 @@ type alias Model =
 
 initialModel : Model
 initialModel =
-    { count = 0
-    , intervalSeconds = 1
+    { intervalSeconds = 1
     , maxAttempts = 3
     , backoffRate = 2
     , times = []
@@ -27,9 +25,7 @@ initialModel =
 
 
 type Msg
-    = Increment
-    | Decrement
-    | ChangeIntervalSeconds String
+    = ChangeIntervalSeconds String
     | ChangeMaxAttempts String
     | ChangeBackoffRate String
 
@@ -37,12 +33,6 @@ type Msg
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        Increment ->
-            { model | count = model.count + 1 }
-
-        Decrement ->
-            { model | count = model.count - 1 }
-
         ChangeIntervalSeconds newIntervalSeconds ->
             if newIntervalSeconds == "" then
                 { model | intervalSeconds = 0 } |> calculateTimes
