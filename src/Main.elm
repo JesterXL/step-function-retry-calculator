@@ -76,7 +76,7 @@ calculateTimes model =
         let
             values =
                 List.repeat model.maxAttempts 0
-                    |> List.indexedMap (\index _ -> (toFloat model.intervalSeconds) * model.backoffRate * (toFloat index) + (toFloat model.intervalSeconds))
+                    |> List.indexedMap (\index _ -> (toFloat model.intervalSeconds) * (model.backoffRate ^ (toFloat index)))
         in
         { model | times = values }
 
